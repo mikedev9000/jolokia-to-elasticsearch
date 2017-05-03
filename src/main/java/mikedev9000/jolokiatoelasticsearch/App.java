@@ -1,10 +1,16 @@
 package mikedev9000.jolokiatoelasticsearch;
 
-import java.io.IOException;
 import java.time.Clock;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+
+import javax.management.MalformedObjectNameException;
 
 import org.jolokia.client.J4pClient;
+import org.jolokia.client.exception.J4pException;
+import org.jolokia.client.request.J4pReadRequest;
+import org.jolokia.client.request.J4pResponse;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
@@ -43,7 +49,7 @@ public class App {
 	Clock clock;
 
 	@Scheduled
-	public void doWork() throws IOException {
+	public void doWork() throws Exception {
 
 		Builder action = new Bulk.Builder();
 
@@ -52,8 +58,23 @@ public class App {
 		elasticsearch.execute(action.build());
 	}
 
-	private List<Object> poll() {
-		// TODO Auto-generated method stub
-		return null;
+	private List<Object> poll() throws MalformedObjectNameException, J4pException {
+
+		List<Object> documents = new ArrayList<>();
+
+		final long now = clock.millis();
+		J4pResponse<J4pReadRequest> response = jolokia
+				.execute(new J4pReadRequest("metrics:type=timer,name=*", "OneMinuteRate", "Mean", "StdDev"));
+
+		Map<String, Map<String, Object>> data = (Map<String, Map<String, Object>>) response.asJSONObject().get("value");
+
+		data.forEach((key, value) -> {
+			value.put("mbean", key);
+			value.put("@timestamp", now);
+
+			documents.add(value);
+		});
+
+		return documents;
 	}
 }
