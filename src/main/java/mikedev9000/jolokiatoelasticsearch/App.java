@@ -14,7 +14,6 @@ import org.jolokia.client.request.J4pResponse;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
-import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -28,7 +27,6 @@ import io.searchbox.core.Index;
 @SpringBootApplication
 @Component
 @EnableScheduling
-@EnableConfigurationProperties(JolokiaConfiguration.class)
 public class App {
 	public static void main(String[] args) {
 		SpringApplication.run(App.class, args);
@@ -48,7 +46,7 @@ public class App {
 	@Autowired
 	Clock clock;
 
-	@Scheduled
+	@Scheduled(fixedDelay = 10000)
 	public void doWork() throws Exception {
 
 		Builder action = new Bulk.Builder();
@@ -64,7 +62,7 @@ public class App {
 
 		final long now = clock.millis();
 		J4pResponse<J4pReadRequest> response = jolokia
-				.execute(new J4pReadRequest("metrics:type=timer,name=*", "OneMinuteRate", "Mean", "StdDev"));
+				.execute(new J4pReadRequest("metrics:type=timers,name=*", "OneMinuteRate", "Mean", "StdDev"));
 
 		Map<String, Map<String, Object>> data = (Map<String, Map<String, Object>>) response.asJSONObject().get("value");
 
